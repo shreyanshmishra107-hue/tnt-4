@@ -1,49 +1,131 @@
 
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Player</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.6.0/controls.min.css">
+  <title>TNT 4</title>
 
   <style>
+    /* Base Styles */
     body {
+      font-family: 'Arial', sans-serif;
       margin: 0;
       padding: 0;
-      background: #000;
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
-    }
-    #video-container {
-      position: absolute;
-      inset: 0;
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: #000;
-    }
-    #error-message {
-      display: none;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 20px;
+      background: linear-gradient(135deg, #242424, #3b5998);
       color: #fff;
-      background: rgba(0,0,0,0.7);
-      padding: 20px;
-      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
       text-align: center;
     }
 
-    /* Remove Shaka Spinner */
-    .shaka-spinner-container { display: none !important; }
+    .player-container {
+      width: 100%;
+      max-width: 100%;
+      height: 100vh;
+      margin: 0;
+      border-radius: 0;
+      overflow: hidden;
+      background: #000;
+      position: relative;
+    }
+    .player-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Telegram Banner */
+    .tg-banner {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: linear-gradient(135deg, rgba(29, 161, 242, 0.85), rgba(0, 119, 181, 0.85));
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      z-index: 1000;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      text-decoration: none;
+    }
+    .tg-banner:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    }
+    .tg-banner img {
+      width: 28px;
+      height: 28px;
+      margin-right: 10px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      transition: transform 0.3s ease;
+    }
+    .tg-banner:hover img { transform: rotate(10deg); }
+    .tg-banner span {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Loading */
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      color: #fff;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    /* Error */
+    .error {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      color: #ff6b6b;
+      text-align: center;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 90%;
+    }
+    .error a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .error a:hover { text-decoration: underline; }
+    .retry-button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    .retry-button:hover { background: #2563eb; }
 
     /* Modal */
     .modal {
@@ -58,7 +140,7 @@
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      animation: fadeIn .5s ease;
+      animation: fadeIn 0.5s ease;
     }
     .modal.hidden { display: none !important; }
 
@@ -73,22 +155,11 @@
       color: #f3f4f6;
       box-shadow: 0 8px 32px rgba(0,0,0,0.4);
       backdrop-filter: blur(12px);
-      transform: scale(.95);
-      animation: scaleIn .4s ease forwards;
+      transform: scale(0.95);
+      animation: scaleIn 0.4s ease forwards;
     }
-
-    .modal-content h2 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #facc15;
-      margin-bottom: 16px;
-    }
-    .modal-content p {
-      font-size: 16px;
-      color: #d1d5db;
-      margin-bottom: 24px;
-      line-height: 1.5;
-    }
+    .modal-content h2 { font-size: 24px; font-weight: 700; color: #facc15; margin-bottom: 16px; }
+    .modal-content p { font-size: 16px; color: #d1d5db; margin-bottom: 24px; line-height: 1.5; }
     .modal-content strong { color: #fff; }
 
     .modal-content .btn {
@@ -99,10 +170,9 @@
       border-radius: 12px;
       margin-bottom: 12px;
       cursor: pointer;
-      transition: .3s;
+      transition: 0.3s;
       display: inline-block;
     }
-
     #joinButton {
       background: linear-gradient(to right,#3b82f6,#06b6d4);
       color: #fff;
@@ -112,7 +182,6 @@
       background: linear-gradient(to right,#2563eb,#0891b2);
       transform: scale(1.02);
     }
-
     #closeButton {
       background: rgba(255,255,255,0.1);
       color: #f3f4f6;
@@ -122,145 +191,57 @@
       transform: scale(1.02);
     }
 
-    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-    @keyframes scaleIn { to { transform: scale(1); opacity: 1 } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleIn { to { transform: scale(1); opacity: 1; } }
 
+    @media (max-width: 480px) {
+      .modal-content h2 { font-size: 20px; }
+      .modal-content p { font-size: 15px; }
+      .tg-banner { top: 16px; left: 16px; }
+    }
   </style>
 </head>
-
 <body>
 
-  <!-- Floating Telegram Button (Top-Left) -->
-  <a href="https://t.me/+7VkflslOE9s4YjQ9" target="_blank" id="floatingTelegramBtn"
-    style="
-      position:fixed;
-      left:15px;
-      top:15px;
-      z-index:9999;
-      background:#0A99E8;
-      border-radius:18px;
-      padding:0.7rem 1.2rem;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      font-weight:600;
-      font-size:1.05rem;
-      color:#fff;
-      box-shadow:0 0 12px rgba(0,0,0,0.3);
-      text-decoration:none;
-   ">
-    <div style="
-        width:28px;
-        height:28px;
-        border-radius:50%;
-        border:2px solid #fff;
-        display:flex;
-        align-items:center;
-        justify-content:center;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg"
-             style="width:16px; height:16px;">
-    </div>
-    Join ▸ OFFSIDEVERSE
+  <!-- Telegram Banner -->
+  <a href="https://t.me/+7VkflslOE9s4YjQ9" class="tg-banner">
+    <img src="https://i.pinimg.com/originals/31/2a/f9/312af9235aadad69655688eaee97eabf.png" alt="Telegram logo">
+    <span>Join @OffsideVerse</span>
   </a>
 
-  <!-- Telegram Popup Modal -->
-  <div id="telegramModal" class="modal">
-    <div class="modal-content">
-      <h2>Join our Telegram</h2>
-      <p>Stay updated with the latest <strong>Live Match Links</strong>. Click below to join our official Telegram channel.</p>
+  <!-- Player -->
+  <div class="player-container" id="playerContainer">
+    <iframe frameborder="0" allow="encrypted-media; autoplay; fullscreen; picture-in-picture" allowfullscreen="true" scrolling="yes" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" src="https://offsidepages-tnt4.netlify.app"></iframe>
+  </div>
 
-      <a href="https://t.me/+7VkflslOE9s4YjQ9" target="_blank" style="text-decoration:none;display:block">
-        <button id="joinButton" class="btn">Join Telegram</button>
+  <!-- Telegram Modal -->
+  <div id="telegramModal" class="modal hidden" aria-hidden="false" role="dialog" aria-modal="true">
+    <div class="modal-content" role="document" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+      <h2 id="modalTitle">Join our Telegram</h2>
+      <p id="modalDesc">Stay updated with the latest <strong>Live Match Links</strong> and updates. Click below to join our official Telegram channel.</p>
+      <a id="joinLink" href="https://t.me/+7VkflslOE9s4YjQ9" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block">
+        <button id="joinButton" class="btn" type="button">Join Telegram</button>
       </a>
-
-      <button id="closeButton" class="btn">Maybe Later</button>
+      <button id="closeButton" class="btn" type="button">Maybe Later</button>
     </div>
   </div>
 
-  <div id="video-container">
-    <video id="video" autoplay muted playsinline></video>
-  </div>
-  <div id="error-message"></div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.6.0/shaka-player.ui.min.js"></script>
-
+  <!-- Modal JS -->
   <script>
-    const manifestUri = "https://ottb.live.cf.ww.aiv-cdn.net/lhr-nitro/live/dash/enc/i2pcjr4pe5/out/v1/912e9db56d75403b8a9ac0a719110f36/cenc.mpd";
+    const modal = document.getElementById('telegramModal');
+    const closeBtn = document.getElementById('closeButton');
 
-    const key1 = "192b1115da041585c77200128549efa1";
-    const key2 = "634e10efe4abbb14be400a3ccbac0258";
+    // Show modal after 3 seconds
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        modal.classList.remove('hidden');
+      }, 3000);
+    });
 
-    // --- Modal Close ---
-    document.getElementById("closeButton").onclick = () => {
-      document.getElementById("telegramModal").classList.add("hidden");
-    };
-
-    async function initPlayer() {
-      const video = document.getElementById('video');
-      const videoContainer = document.getElementById('video-container');
-      const errorMessage = document.getElementById('error-message');
-
-      try {
-        const player = new shaka.Player(video);
-
-        const ui = new shaka.ui.Overlay(player, videoContainer, video);
-        ui.configure({
-          controlPanelElements: [
-            'play_pause',
-            'mute',
-            'volume',
-            'time_and_duration',
-            'spacer',
-            'quality',
-            'picture_in_picture',
-            'fullscreen'
-          ]
-        });
-
-        player.configure({
-          drm: { clearKeys: { [key1]: key2 } },
-          streaming: {
-            bufferingGoal: 15,
-            rebufferingGoal: 5,
-            stallEnabled: true,
-            stallThreshold: 1
-          },
-          abr: {
-            enabled: true,
-            defaultBandwidthEstimate: 800000,
-            switchInterval: 8
-          }
-        });
-
-        video.muted = false;
-        try { await video.play(); }
-        catch (err) {
-          video.muted = true;
-          await video.play().catch(()=>{});
-        }
-
-        player.addEventListener('error', (event) => {
-          errorMessage.innerHTML =
-            "Failed to load stream.<br><button onclick='location.reload()'>Retry</button>";
-          errorMessage.style.display = 'block';
-        });
-
-        await player.load(manifestUri);
-        console.log("Stream Loaded!");
-      }
-      catch (err) {
-        errorMessage.innerHTML =
-          "An error occurred.<br><button onclick='location.reload()'>Retry</button>";
-        errorMessage.style.display = 'block';
-      }
-    }
-
-    if (shaka.Player.isBrowserSupported()) {
-      shaka.polyfill.installAll();
-      document.addEventListener('DOMContentLoaded', initPlayer);
-    } else {
-      alert("Browser not supported");
-    }
+    // Close modal on button click
+    closeBtn.addEventListener('click', () => {
+      modal.classList.add('hidden');
+    });
   </script>
 
 </body>
